@@ -1,0 +1,158 @@
+---
+title: "MULTIPLE lINEAR REGRESSION ON MARKETTING DATA IN DATARIUM USING R"
+author: "Srimanta Singha"
+date: "`r Sys.Date()`"
+output: html_document
+---
+# DESCRIPTION OF DATASET:
+
+"Marketing" data set is a data frame containing the impact of three advertising medias
+ (YouTube, facebook and newspaper) on sales. Data are the advertising budget
+in thousands of dollars along with the sales (in thousands of units). The
+advertising experiment has been repeated 200 times. This is a simulated data.
+
+# Dataset Loading:
+
+```{r}
+  library(datarium)
+  data=marketing # This is our dataset
+  head(data) # showing first six rows of dataset
+```
+```{r}
+str(data) # structure of dataset
+```
+This shows that our dataset contains three variables which are all continuos variable.
+
+# AIM:
+The aim of this project is to find out the features which influences the sales and build a multiple linear regression(if possible) model to predict the amount of sales in future.
+
+Here we want to predict the sales based on the advertising budget invested in given three platform(YouTube, facebook and newspaper)
+so we will consider the variable "sales" as response variable and
+others variables as predictor variable.
+
+# Features selection:
+
+Since we have three features in our dataset but it is possible that all of them may not influences the sales so ,in this part, we will extract the features which are the most important to increase the sales.
+
+For this we will create the cor-relation matrix to find out the features which are the most linearly dependent variable to the response variable and we will take those features in our model
+later.
+```{r}
+ cor(data)
+```
+The cor-relation matrix shows that the variables facebook and youtube are highly correlated to the sales but newspaper is not too much correlated to the sales compared to others.
+Again the correlation between youtube and facebook is very less so they are likely to be linearly independent.
+
+we can also see the following plots to clarify the linearity.
+
+```{r}
+scatter.smooth(data$youtube,data$sales) # Plotting youtube vs sales
+scatter.smooth(data$facebook,data$sales) #plotting facebook vs sales
+scatter.smooth(data$newspaper,data$sales) # plotting newspaper vs sales
+```
+
+# Multiple Linear Regression Model Building:
+
+As we discussed above we will build the multiple linear regression model with sales as response variable and youtube and facebook are as predictors.
+
+MODEL:
+```{r}
+model=lm(sales~youtube+facebook,data=data)
+summary(model)
+```
+Clearly we see that all the predictors are significant in our model and p-value: < 2.2e-16 indicates that our model is acceptable.
+The Adjusted R-squared:  0.8962 indicates that 89.62% of  the variation in the response is explained by the predictors in our model.
+# ASSUMPTIONS CHECKING:
+
+We will check the following assumptions:
+
+1. Linearity relation between response and regressors/predictors.
+
+2.Homogeneity of variance(Homoscedasticity) in residuals.
+
+3.Normality of Residuals
+
+4.independence of error terms(No auto correlation)
+
+5.No multicolinearity.
+  
+# Linearity:
+
+We already check that there is relationship between sales and each predictors variable in our model and hence linearity assumption satisfied.
+
+# Homoscedasticity:
+```{r}
+plot(model,3)
+```
+
+This plot shows that there is no constant variance in residuals that is, no homoscedasticity as the fitted line(red colored) in the above plot is not horizontal and to resolve this issue we need some transformation.
+Since the fitted red colored line looks like parabolic so we may use the square root or cube root or logarithmic transformation of response variable.
+
+Now before checking others assumptions we reconstruct our model using logarithmic transformation
+of response variable.
+
+```{r}
+
+new_model=lm(log(sales)~youtube+facebook,data=data)
+summary(new_model)
+```
+Assumptions checking on new model:
+
+```{r}
+plot(new_model,3)
+```
+
+This plot ensure that our new model contains the homoscedasticity in residuals.
+
+```{r}
+plot(new_model,2)
+```
+
+This Q-Q plot ensure the normality in residuals.
+
+
+# No Autocorrelation in Residuals:
+```{r}
+library(car)
+durbinWatsonTest(new_model)
+```
+The output of the test shows that p value is greater than 0.05 and hence accept the null hypothesis that is, rho=0 and there is no autocorrelation in residuals.
+
+#Multicolinearity in predictors:
+```{r}
+vif(new_model)
+```
+
+The variance influence factors(VIF) of the predictors are less than 5 and very less and hence no multicolinearity presents in the predictors.
+
+## Outliers Test:
+```{r}
+outlierTest(new_model)
+```
+The outliers test shows that 131th and 156 th observations results the larger error in our new model.
+Now we check which outliers are the influential observations.
+For this we consider the following plot.
+```{r}
+plot(new_model,c(4,5))
+```
+
+we see that all the outliers has the cook's distance inside 1 and hence we may consider that no influence observation there.
+
+# Prediction Model:
+According to the new model(reconstruct), the prediction model is
+
+log(sales^2)=1.9273997+(0.0030609)*youtube+ (0.0099874)*facebook.
+
+# Prediction Function:
+```{r}
+predict=function(y,f){
+  return(exp(1.9273997+(0.0030609)*y+ (0.0099874)*f))
+}
+```
+Suppose we spent the money in youtube is $200 and facbook is $180 then the unit of sale is given by...
+```{r}
+predict(200,180)
+```
+
+The unit of sale(in thousands of unit) is 76.5.
+
+#                                THANK YOU
